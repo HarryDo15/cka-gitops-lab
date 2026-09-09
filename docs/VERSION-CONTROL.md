@@ -1,6 +1,6 @@
 # Version-control checkpoints
 
-Commit and push after each small, working milestone: a repaired exercise, passing application change, verified deployment, or documentation update. This preference is also recorded in `AGENTS.md` for future coding sessions.
+Group related work into substantial, verified milestones before committing and pushing. Do not push every small edit or documentation change. This preference is recorded in `AGENTS.md` for future coding sessions.
 
 ```bash
 git status --short
@@ -18,11 +18,11 @@ Use a branch and pull request for experiments you do not want deployed from `mai
 
 Suggested checkpoints:
 
-1. Cluster bootstraps and node is Ready.
-2. API tests pass and the workload survives pod recreation.
-3. Argo CD reads the repository and syncs successfully.
-4. GitLab produces a tested ARM64 image.
-5. A digest-pinned promotion is deployed and verified.
-6. Each completed CKA break/fix exercise, with a short incident note.
+1. Cluster bootstraps successfully, the node is Ready, and setup documentation matches the working system.
+2. Incident Desk is deployed, API behavior and persistent storage are verified, and the first exercise is documented.
+3. Argo CD is connected and GitLab CI builds an image that can be promoted and deployed.
+4. A group of related CKA exercises is complete, with diagnosis and recovery notes.
+
+Include related code, tests, scripts, and documentation in the same milestone commit. Keep the existing commit history; this preference applies to new work.
 
 These are workflow reminders, not scheduled notifications.

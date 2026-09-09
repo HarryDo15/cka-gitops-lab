@@ -4,16 +4,16 @@ A hands-on Kubernetes administration project for an Apple Silicon MacBook: one L
 
 ## Current status — 9 September 2026
 
-This repository contains an initial scaffold and a documented implementation plan. **The cluster is not running yet.**
+**The Kubernetes cluster was verified from the host and is now stopped for the next session.** Initial provisioning was repaired in the existing VM; see [the bootstrap incident](docs/incident-notes/0001-bootstrap.md). Application deployment and CI/GitOps integration remain pending.
 
 | Component | Status |
 | --- | --- |
 | Host inspection | Apple Silicon, macOS 26.6.2, 24 GiB RAM, 10 CPU cores |
 | Lima | Installed through Homebrew, version 2.2.0 |
-| Kubernetes VM | Bootstrap started; Linux image download in progress |
-| Kubernetes | Configured for v1.34.11; not installed or validated |
+| Kubernetes VM | Stopped intentionally; disk preserved. Ubuntu 26.04 LTS, containerd 2.3.3 |
+| Kubernetes | v1.34.11 installed; node Ready, all eight system/network pods Running, API readiness passes |
 | Argo CD | Installation script prepared for v3.5.2; not installed |
-| Example application | Seven API tests pass; deployment pending VM startup |
+| Example application | Seven API tests pass; deployment pending |
 | Kubernetes application manifests | Deployment, Service, ConfigMap, PVC and local PV prepared; Kustomize rendering passes |
 | GitLab CI | Test, ARM64 BuildKit build and promotion artifact jobs prepared; GitLab access and first run pending |
 | Argo CD application | Restricted AppProject and manual-sync Application prepared; connection pending |
@@ -57,21 +57,25 @@ infra/kubeadm.yaml          Adapted Lima v2.2.0 kubeadm template
 scripts/up.sh              Create/start VM and copy isolated kubeconfig
 scripts/kubectl.sh         kubectl wrapper using this project's kubeconfig
 scripts/install-argocd.sh   Install pinned Argo CD manifests
-scripts/connect-gitlab.sh  Scaffold; requires missing GitOps manifests
+scripts/connect-gitlab.sh  Connect the GitLab repository to Argo CD
 docs/SETUP.md              Installation and remaining integration work
 docs/PRACTICE.md           Project ideas and CKA exercises
 ```
 
 ## Start here
 
-Read [the setup guide](docs/SETUP.md) before running commands. The next infrastructure step is:
+Read [the setup guide](docs/SETUP.md) before running commands. Start or resume the cluster with:
 
 ```bash
 cd /Users/haido/Projects/cka-gitops-lab
 bash scripts/up.sh
 ```
 
-This downloads a Linux image and Kubernetes packages and creates the VM. The scripts are prepared but have not yet been validated against a running cluster.
+The VM was shut down cleanly on 9 September 2026 after verification. Run the command above to resume next time. The local `k` shell alias selects this project’s kubeconfig.
+
+Host access through `127.0.0.1:16443` and `scripts/up.sh` were verified on 9 September 2026. Swap is disabled. A full VM stop/start recovery has not yet been tested.
+
+The next deployment step is `bash scripts/bootstrap-app.sh`, followed by `python3 scripts/verify-app.py` to verify application behavior and persistence.
 
 For project options and exercises, see [the practice plan](docs/PRACTICE.md).
 
@@ -88,7 +92,7 @@ Versions here record the choices made during setup, rather than a promise that t
 
 ## Version-control habit
 
-Commit and push after each tested milestone or completed exercise. See [the checkpoint guide](docs/VERSION-CONTROL.md).
+Group related changes into substantial, verified milestones before committing and pushing. See [the checkpoint guide](docs/VERSION-CONTROL.md).
 
 ## First troubleshooting exercise
 

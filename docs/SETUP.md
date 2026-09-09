@@ -126,6 +126,6 @@ limactl shell cka-lab
 python3 -m unittest discover -s app -p 'test_*.py' -v
 ```
 
-After each working change or completed exercise, review, commit, and push. See [VERSION-CONTROL.md](VERSION-CONTROL.md). The private GitHub repository is [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab), with `main` tracking `origin/main`.
+At the end of a substantial milestone or group of related exercises, review, commit, and push. See [VERSION-CONTROL.md](VERSION-CONTROL.md). The private GitHub repository is [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab), with `main` tracking `origin/main`.
 
 Flannel alone does not enforce NetworkPolicy. Add a policy-capable network solution before claiming that isolation exercises work. A one-node cluster also cannot demonstrate failover onto another node.

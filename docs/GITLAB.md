@@ -50,4 +50,4 @@ The placeholder digest above is intentionally invalid. Replace the whole image r
 
 Push source changes to `gitlab main` whenever you want a new CI build. Promotion-only commits need not be sent to GitLab immediately. Keep GitHub authoritative; do not independently edit both copies of `main`. Automatic mirroring can be configured later if your GitLab account supports the chosen mirroring feature.
 
-**Checkpoint reminder:** after verifying a promotion or fixing an exercise, commit and push your source/configuration changes to GitHub.
+**Checkpoint reminder:** group related work into a substantial, verified milestone before committing and pushing to GitHub.
