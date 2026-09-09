@@ -132,13 +132,14 @@ limactl shell cka-lab
 
 Deletion is intentionally not part of the normal workflow. Back up application data and etcd before any VM deletion or destructive recovery exercise.
 
-## Optional GitHub publication
+## GitHub repository
 
-The local Git repository can be pushed after creating an empty GitHub repository and choosing its visibility:
+The project is published to the private repository [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab). The local `origin` remote points to its HTTPS URL, and `main` tracks `origin/main`.
+
+After committing further changes, publish them with:
 
 ```bash
-git remote add origin git@github.com:YOUR_ACCOUNT/cka-gitops-lab.git
-git push -u origin main
+git push origin main
 ```
 
-No GitHub repository has been created or published by this setup. If GitHub becomes the source of truth, explicitly configure mirroring to GitLab so CI and Argo CD observe the same commits.
+GitLab integration remains pending. If GitHub remains the source of truth, explicitly configure mirroring to GitLab so CI and Argo CD observe the same commits.

@@ -17,9 +17,9 @@ This repository contains an initial scaffold and a documented implementation pla
 | Kubernetes application manifests | Not yet implemented; `deploy/` is reserved for them |
 | GitLab CI | Pipeline not yet implemented; GitLab project URL and runner choice are still needed |
 | Argo CD application | Connection script scaffolded; referenced `gitops/project.yaml` and `gitops/application.yaml` do not exist yet |
-| Remote repository | No GitHub or GitLab remote configured |
+| Remote repository | Private GitHub repository: https://github.com/HarryDo15/cka-gitops-lab; GitLab not yet configured |
 
-“Local GitHub” is interpreted here as a local Git repository ready to push to GitHub. GitHub can hold the project documentation and source; the requested CI service remains GitLab. If both hosts are used, choose one authoritative repository and define a mirror process before enabling deployments.
+The local Git repository is connected to the private GitHub repository [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab). GitHub holds the project documentation and source; the requested CI service remains GitLab. If both hosts are used, choose one authoritative repository and define a mirror process before enabling deployments.
 
 ## Intended architecture
 
