@@ -1,0 +1,7 @@
+.local/
+__pycache__/
+*.db
+.env
+*.pem
+*.key
+.DS_Store
