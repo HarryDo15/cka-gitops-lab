@@ -13,7 +13,7 @@ This repository contains an initial scaffold and a documented implementation pla
 | Kubernetes VM | Bootstrap started; Linux image download in progress |
 | Kubernetes | Configured for v1.34.11; not installed or validated |
 | Argo CD | Installation script prepared for v3.5.2; not installed |
-| Example application | Four API tests pass; deployment pending VM startup |
+| Example application | Seven API tests pass; deployment pending VM startup |
 | Kubernetes application manifests | Deployment, Service, ConfigMap, PVC and local PV prepared; Kustomize rendering passes |
 | GitLab CI | Test, ARM64 BuildKit build and promotion artifact jobs prepared; GitLab access and first run pending |
 | Argo CD application | Restricted AppProject and manual-sync Application prepared; connection pending |
@@ -89,3 +89,7 @@ Versions here record the choices made during setup, rather than a promise that t
 ## Version-control habit
 
 Commit and push after each tested milestone or completed exercise. See [the checkpoint guide](docs/VERSION-CONTROL.md).
+
+## First troubleshooting exercise
+
+[Break and repair a Service selector](docs/FIRST-EXERCISE.md), then record its symptom, diagnosis, cause, fix, and verification in Incident Desk. Incidents are entered manually; this app is not a cluster monitoring agent.

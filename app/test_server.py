@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import sqlite3
 from pathlib import Path
 import tempfile
 import threading
@@ -27,9 +28,9 @@ class ApiTests(unittest.TestCase):
         self.thread.join()
         self.temp.cleanup()
 
-    def request(self, path, payload=None):
+    def request(self, path, payload=None, method=None):
         data = None if payload is None else json.dumps(payload).encode()
-        req = Request(self.url + path, data=data, headers={"Content-Type": "application/json"})
+        req = Request(self.url + path, data=data, method=method, headers={"Content-Type": "application/json"})
         try:
             response = urlopen(req, timeout=5)
         except HTTPError as error:
@@ -56,6 +57,36 @@ class ApiTests(unittest.TestCase):
 
     def test_unknown_endpoint(self):
         self.assertEqual(self.request("/missing")[0], 404)
+
+    def test_incident_resolution_preserves_original_details(self):
+        _, incident = self.request("/incidents", {"title": "API unavailable", "symptom": "No service endpoints"})
+        path = f"/incidents/{incident['id']}"
+        status, updated = self.request(path, {"status": "resolved", "cause": "Wrong selector",
+                                              "diagnosis": "Inspected EndpointSlices", "fix": "Corrected labels",
+                                              "verification": "HTTP 200"}, method="PATCH")
+        self.assertEqual(status, 200)
+        self.assertEqual(updated["symptom"], incident["symptom"])
+        self.assertEqual(updated["created_at"], incident["created_at"])
+        self.assertEqual(updated["status"], "resolved")
+        self.assertEqual(self.request(path), (200, updated))
+
+    def test_unknown_fields_and_status_are_rejected_without_changes(self):
+        _, incident = self.request("/incidents", {"title": "Broken probe"})
+        path = f"/incidents/{incident['id']}"
+        for change in ({"status": "deleted"}, {"id": 99}, {"fix": ["invalid"]}):
+            self.assertEqual(self.request(path, change, method="PATCH")[0], 400)
+        self.assertEqual(self.request(path), (200, incident))
+        self.assertEqual(self.request("/incidents/999", {"status": "resolved"}, method="PATCH")[0], 404)
+
+    def test_old_database_is_migrated_without_losing_titles(self):
+        with sqlite3.connect(server.DB) as db:
+            db.execute("CREATE TABLE incidents (id INTEGER PRIMARY KEY, title TEXT NOT NULL)")
+            db.execute("INSERT INTO incidents VALUES (1, 'Original incident')")
+        status, row = self.request("/incidents/1")
+        self.assertEqual(status, 200)
+        self.assertEqual(row["title"], "Original incident")
+        self.assertEqual(row["status"], "open")
+        self.assertEqual(row["fix"], "")
 
 
 if __name__ == "__main__":
