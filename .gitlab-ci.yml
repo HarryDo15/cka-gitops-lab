@@ -1,0 +1,60 @@
+stages: [test, build, promotion]
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+test:
+  stage: test
+  image: python:3.13-alpine
+  script:
+    - python -m unittest discover -s app -p 'test_*.py' -v
+
+build:
+  stage: build
+  image:
+    name: moby/buildkit:v0.23.2-rootless
+    entrypoint: [""]
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  before_script:
+    - mkdir -p ~/.docker
+    - |
+      AUTH=$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')
+      printf '{"auths":{"%s":{"auth":"%s"}}}' "$CI_REGISTRY" "$AUTH" > ~/.docker/config.json
+  script:
+    # This Dockerfile has no RUN steps, so ARM64 does not need QEMU on an AMD64 runner.
+    - >-
+      buildctl-daemonless.sh build
+      --frontend dockerfile.v0
+      --local context=app
+      --local dockerfile=app
+      --opt platform=linux/arm64
+      --output type=image,name=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA,push=true
+      --metadata-file build-metadata.json
+  artifacts:
+    paths: [build-metadata.json]
+    expire_in: 30 days
+
+promotion:
+  stage: promotion
+  image: python:3.13-alpine
+  needs: [build]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - |
+      python - <<'PY'
+      import json, os, subprocess
+      from pathlib import Path
+      digest = json.loads(Path('build-metadata.json').read_text())['containerimage.digest']
+      image = os.environ['CI_REGISTRY_IMAGE'] + '@' + digest
+      subprocess.run(['python', 'scripts/promote-image.py', image], check=True)
+      Path('promoted-image.txt').write_text(image + '\n')
+      PY
+  artifacts:
+    paths: [deploy/kustomization.yaml, promoted-image.txt]
+    expire_in: 30 days

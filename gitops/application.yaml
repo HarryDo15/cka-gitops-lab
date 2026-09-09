@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: incident-desk
+  namespace: argocd
+spec:
+  project: cka-lab
+  source:
+    repoURL: REPLACE_REPO_URL
+    targetRevision: main
+    path: deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: incident-desk
+  # Manual sync makes break/fix exercises predictable.
+  syncPolicy:
+    syncOptions:
+      - PruneLast=true

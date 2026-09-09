@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: cka-lab
+  namespace: argocd
+spec:
+  description: Incident Desk practice namespace
+  sourceRepos:
+    - REPLACE_REPO_URL
+  destinations:
+    - namespace: incident-desk
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: PersistentVolumeClaim

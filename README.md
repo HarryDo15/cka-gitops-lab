@@ -10,13 +10,13 @@ This repository contains an initial scaffold and a documented implementation pla
 | --- | --- |
 | Host inspection | Apple Silicon, macOS 26.6.2, 24 GiB RAM, 10 CPU cores |
 | Lima | Installed through Homebrew, version 2.2.0 |
-| Kubernetes VM | Template prepared; launch was interrupted at the permission step; subsequent Lima listing found no instances |
+| Kubernetes VM | Bootstrap started; Linux image download in progress |
 | Kubernetes | Configured for v1.34.11; not installed or validated |
 | Argo CD | Installation script prepared for v3.5.2; not installed |
-| Example application | Python Incident Desk API and Dockerfile scaffolded; not tested or deployed |
-| Kubernetes application manifests | Not yet implemented; `deploy/` is reserved for them |
-| GitLab CI | Pipeline not yet implemented; GitLab project URL and runner choice are still needed |
-| Argo CD application | Connection script scaffolded; referenced `gitops/project.yaml` and `gitops/application.yaml` do not exist yet |
+| Example application | Four API tests pass; deployment pending VM startup |
+| Kubernetes application manifests | Deployment, Service, ConfigMap, PVC and local PV prepared; Kustomize rendering passes |
+| GitLab CI | Test, ARM64 BuildKit build and promotion artifact jobs prepared; GitLab access and first run pending |
+| Argo CD application | Restricted AppProject and manual-sync Application prepared; connection pending |
 | Remote repository | Private GitHub repository: https://github.com/HarryDo15/cka-gitops-lab; GitLab not yet configured |
 
 The local Git repository is connected to the private GitHub repository [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab). GitHub holds the project documentation and source; the requested CI service remains GitLab. If both hosts are used, choose one authoritative repository and define a mirror process before enabling deployments.
@@ -85,3 +85,7 @@ For project options and exercises, see [the practice plan](docs/PRACTICE.md).
 - [Argo CD installation](https://argo-cd.readthedocs.io/en/stable/operator-manual/installation/).
 
 Versions here record the choices made during setup, rather than a promise that they are the latest available releases.
+
+## Version-control habit
+
+Commit and push after each tested milestone or completed exercise. See [the checkpoint guide](docs/VERSION-CONTROL.md).

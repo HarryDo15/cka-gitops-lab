@@ -9,8 +9,9 @@ mkdir -p .local
 python3 - <<'PY'
 import json, os
 from pathlib import Path
-p = Path('gitops/application.yaml').read_text()
-Path('.local/application.yaml').write_text(p.replace('REPLACE_REPO_URL', json.dumps(os.environ['REPO_URL'])))
+for name in ('project', 'application'):
+    p = Path(f'gitops/{name}.yaml').read_text()
+    Path(f'.local/{name}.yaml').write_text(p.replace('REPLACE_REPO_URL', json.dumps(os.environ['REPO_URL'])))
 PY
-bash scripts/kubectl.sh apply -f gitops/project.yaml
+bash scripts/kubectl.sh apply -f .local/project.yaml
 bash scripts/kubectl.sh apply -f .local/application.yaml
