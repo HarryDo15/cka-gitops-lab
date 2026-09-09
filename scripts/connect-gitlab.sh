@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 REPO_URL="${1:?Usage: bash scripts/connect-gitlab.sh https://gitlab.com/group/project.git}"
-case "$REPO_URL" in https://*.git) ;; *) echo 'Use an HTTPS Git repository URL ending in .git' >&2; exit 1;; esac
+case "$REPO_URL" in https://*.git|git@github.com:*.git) ;; *) echo 'Use an HTTPS Git URL or a GitHub SSH URL ending in .git' >&2; exit 1;; esac
 export REPO_URL
 mkdir -p .local
 python3 - <<'PY'

@@ -1,145 +1,131 @@
-# Setup and implementation checklist
+# Setup and daily use
 
-## 1. Host prerequisites
+Run commands from `/Users/haido/Projects/cka-gitops-lab`. The README records what has actually been verified; this guide describes the complete workflow.
 
-Lima 2.2.0 is installed. Existing tools include Docker, Git, and kubectl v1.34.1. The planned Kubernetes v1.34.11 matches the installed kubectl minor version. The Mac has enough capacity for the initial 4-vCPU, 8-GiB VM; reduce other heavy workloads if memory pressure becomes noticeable.
-
-The template is adapted from Lima's v2.2.0 `k8s.yaml` and pins Kubernetes packages and control-plane images to 1.34.11. Flannel is pinned to v0.28.5. The Ubuntu base image is resolved through Lima's bundled `ubuntu-lts` template; this is not a fully immutable VM build.
-
-## 2. Bootstrap the VM
-
-From the repository root:
+## 1. Start the single-node cluster
 
 ```bash
 bash scripts/up.sh
 bash scripts/kubectl.sh get nodes -o wide
 bash scripts/kubectl.sh get pods -A
-limactl shell cka-lab sudo kubeadm version
-limactl shell cka-lab sudo systemctl status kubelet --no-pager
 ```
 
-Expected outcome: exactly one Ready node, running control-plane components, CoreDNS, and Flannel. The script writes `.local/kubeconfig`, which is excluded from Git and contains administrative credentials. It does not modify your default kubectl context.
+Lima creates a native ARM64 Linux VM with 4 CPUs, 8 GiB RAM, and a 50 GiB disk. The template pins Kubernetes to 1.34.11 and Flannel to v0.28.5. Its base image comes from Lima 2.2.0's Ubuntu LTS template. Initial downloads can be slow.
 
-The template configures containerd's systemd cgroup driver, disables swap during provisioning, enables forwarding, and removes the control-plane taint for single-node scheduling. Validate swap remains disabled after a reboot as part of the bootstrap checks.
+The VM uses containerd, systemd cgroups, and kubeadm. Its only node schedules both control-plane and application pods. The host API endpoint is `https://127.0.0.1:16443`.
 
-If startup fails:
+Always use `bash scripts/kubectl.sh` or explicitly export this project's `.local/kubeconfig`. The wrapper does not change your default Kubernetes context. The kubeconfig contains administrative credentials and must remain outside Git.
+
+Troubleshooting:
 
 ```bash
 limactl list
 limactl shell cka-lab sudo tail -n 100 /var/log/cloud-init-output.log
 limactl shell cka-lab sudo journalctl -u kubelet -n 100 --no-pager
+limactl shell cka-lab sudo kubeadm version
+limactl shell cka-lab sudo swapon --show
 ```
 
-Do not delete the VM as the first troubleshooting step. Inspect the failed provisioning phase and repair it; this is useful CKA practice.
+Expected: one Ready node, healthy CoreDNS and Flannel, and no active swap. Inspect errors before restarting or rebuilding the VM.
 
-## 3. Install Argo CD
+## 2. Bootstrap Incident Desk
 
-After the node is healthy:
+```bash
+bash scripts/bootstrap-app.sh
+python3 scripts/verify-app.py
+bash scripts/kubectl.sh -n incident-desk port-forward svc/incident-desk 8080:80
+```
+
+The bootstrap script builds `docker.io/library/incident-desk:bootstrap` directly into the VM's Kubernetes containerd image store. This initial image does not require a registry. The manifest's `IfNotPresent` policy lets kubelet use it. Use this script for the initial bootstrap; after registry promotion, the GitOps image reference becomes authoritative.
+
+The local build tag is deliberately a bootstrap convenience. Application source changes require another build and a pod restart until the GitLab image workflow is connected. CI promotions use immutable digests instead.
+
+The API runs as UID/GID 10001 with a read-only root filesystem and a writable `/data` mount. Its SQLite database resides on a static local PV at `/var/lib/incident-desk` in the VM. A single replica and `Recreate` deployment strategy avoid concurrent rollout replicas sharing the database. Local storage is not replicated; declared PV capacity is not a filesystem quota.
+
+In another terminal:
+
+```bash
+curl http://127.0.0.1:8080/healthz
+curl http://127.0.0.1:8080/readyz
+curl -H 'Content-Type: application/json' \
+  -d '{"title":"Investigate failed rollout"}' http://127.0.0.1:8080/incidents
+curl http://127.0.0.1:8080/incidents
+```
+
+`verify-app.py` creates a small test incident through Service DNS, restarts the Deployment, checks that the pod was replaced, and verifies that the record remains. It intentionally leaves the test record for inspection.
+
+The PV uses `Retain` and the PVC has Argo CD `Prune=false`. These reduce accidental cleanup risk, but neither replaces a backup. Deleting the VM destroys its disk and local application data.
+
+## 3. Install and connect Argo CD
 
 ```bash
 bash scripts/install-argocd.sh
-bash scripts/kubectl.sh -n argocd get pods
+bash scripts/connect-github.sh
+bash scripts/sync-app.sh
+bash scripts/kubectl.sh -n argocd get applications
+```
+
+Argo CD is pinned to v3.5.2. `connect-github.sh` generates an ignored local SSH key and adds its public half as a read-only deploy key to `HarryDo15/cka-gitops-lab`. The private half is installed as a Kubernetes repository Secret. The account-wide GitHub CLI credential is not given to Argo CD.
+
+The AppProject permits only the configured repository, `incident-desk` namespace, and the required application resource types. The namespace, StorageClass, and PV are bootstrapped outside Argo CD. There is no automatic application deletion finalizer.
+
+Sync is manual for predictable break/fix practice. After a GitHub push, Argo CD detects the desired revision; run `sync-app.sh` or use the UI to apply it. Wait for Synced and Healthy before calling the deployment verified:
+
+```bash
+bash scripts/kubectl.sh -n argocd get application incident-desk \
+  -o jsonpath='{.status.sync.status}{" / "}{.status.health.status}{"\n"}'
+```
+
+UI access:
+
+```bash
 bash scripts/kubectl.sh -n argocd port-forward svc/argocd-server 8081:443
 ```
 
-Open `https://localhost:8081`. The initial installation uses a self-signed certificate. In another terminal, retrieve the initial admin password locally:
+Open `https://localhost:8081` and use username `admin`. The initial installation has a self-signed certificate. Retrieve the initial password only in your local terminal:
 
 ```bash
 bash scripts/kubectl.sh -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 --decode
 ```
 
-Use username `admin`, change the password after login, and keep credentials out of commits. Argo CD is not yet connected to any repository.
+Change the password after login and keep it out of commits.
 
-## 4. Finish the application deployment
+## 4. Connect GitLab CI
 
-The starter API uses Python's standard library and SQLite:
+See [GITLAB.md](GITLAB.md) for the second Git remote, runner requirements, registry credentials, and digest promotion workflow. GitHub remains the source of truth. GitLab CI builds the image; Argo CD pulls the deployment configuration from GitHub.
 
-| Endpoint | Behavior |
-| --- | --- |
-| `GET /` | Application information and configurable welcome message |
-| `GET /healthz` | Process liveness |
-| `GET /readyz` | Database accessibility |
-| `GET /incidents` | List stored incidents |
-| `POST /incidents` | Create an incident from `{"title":"Investigate failed rollout"}` |
-
-Still to implement in `deploy/`:
-
-- A namespace and Kustomize configuration.
-- One-replica Deployment with `Recreate` strategy for the initial SQLite workload.
-- Service, ConfigMap for `WELCOME_MESSAGE`, readiness and liveness probes on port 8080.
-- CPU and memory requests/limits, non-root security context, and disabled automatic service-account token mounting.
-- Static local PersistentVolume and matching PVC, with node affinity and `Retain` reclaim policy. Mount `/var/lib/incident-desk` at `/data` for UID/GID 10001.
-
-The local directory is created by the VM provisioning script. A local PV has node affinity and does not provide failover or a hard filesystem quota merely because its requested capacity is set. Keep one API replica initially; separate the database before exploring horizontal scaling.
-
-## 5. Connect GitLab CI and GitOps
-
-Required user-specific information: GitLab instance and project URL, repository visibility, available runner, and registry access method. Do not paste access tokens into this document.
-
-Recommended initial arrangement: GitLab-hosted source and registry, a hosted CI runner, and Argo CD in the local cluster. This avoids running a full GitLab server on the Mac.
-
-Implement `.gitlab-ci.yml` with these stages:
-
-1. Test API behavior and validate Kubernetes manifests.
-2. Build an image supporting `linux/arm64`, or a multi-platform image supporting both `linux/arm64` and `linux/amd64`.
-3. Push to `$CI_REGISTRY_IMAGE` using an immutable commit tag, preferably recording the image digest for deployment.
-4. Propose a change to the image reference under `deploy/` through a merge request. Keep promotion explicit and avoid pipelines recursively committing to themselves.
-5. After merge, let Argo CD detect and sync the change.
-
-A runner's architecture and privilege policy determine whether to use native ARM builds, BuildKit, or Docker Buildx with emulation. Decide this before writing the build job. Hosted CI does not need inbound access to the Mac's Kubernetes API; Argo CD pulls from GitLab.
-
-For a private repository, configure an Argo CD repository credential with read-only repository access. For a private image registry, create an image pull secret using a deploy token with `read_registry`, then reference it from the workload. CI's short-lived job token is not a suitable persistent image-pull credential. Store credentials in GitLab variables and Kubernetes Secrets, not committed YAML; base64 is not encryption.
-
-Still to implement in `gitops/`:
-
-- `project.yaml`: an AppProject limited to the selected repository and application namespace.
-- `application.yaml`: an Application pointing to `deploy/`, with `REPLACE_REPO_URL` as the connection-script placeholder.
-
-Only after these files exist, run:
+Before promoting a private registry image:
 
 ```bash
-bash scripts/connect-gitlab.sh https://gitlab.com/YOUR_GROUP/YOUR_PROJECT.git
+python3 scripts/registry-secret.py
 ```
 
-Begin with manual sync so troubleshooting edits remain visible. When enabling automated sync and self-heal, suspend them before break/fix drills and restore them afterward.
+This prompts locally for a deploy token with `read_registry` and sends it directly to Kubernetes. Add the following under the Deployment's `spec.template.spec`, then commit and push:
 
-## 6. Acceptance checks
+```yaml
+imagePullSecrets:
+  - name: gitlab-registry
+```
 
-- [ ] One kubeadm node is Ready and system pods are healthy.
-- [ ] Argo CD components are healthy and its local UI is reachable.
-- [ ] GitLab pipeline tests and builds an ARM64-compatible image successfully.
-- [ ] Argo CD reports the application Synced and Healthy at the intended commit.
-- [ ] A POST creates an incident and a subsequent GET returns it.
-- [ ] Deleting the application pod preserves the incident after recreation.
-- [ ] A merged image update reaches the cluster and a Git revert restores the previous release.
-- [ ] VM stop/start recovers the node and application with data intact.
+No GitLab credentials should be committed. A successful local test is not evidence that the remote pipeline has run; verify its first execution in GitLab.
 
-These checks are pending; no end-to-end deployment has been verified.
-
-## Daily operations
+## 5. Daily operations and checkpoints
 
 ```bash
-# Stop the lab to release CPU and RAM; disk is preserved.
+# Pause the VM; preserve its disk.
 limactl stop cka-lab
 
-# Resume and refresh the project kubeconfig.
+# Resume and refresh kubeconfig.
 bash scripts/up.sh
 
-# Enter the node for administration exercises.
+# Work inside the node.
 limactl shell cka-lab
+
+# Run API tests on the host.
+python3 -m unittest discover -s app -p 'test_*.py' -v
 ```
 
-Deletion is intentionally not part of the normal workflow. Back up application data and etcd before any VM deletion or destructive recovery exercise.
+After each working change or completed exercise, review, commit, and push. See [VERSION-CONTROL.md](VERSION-CONTROL.md). The private GitHub repository is [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab), with `main` tracking `origin/main`.
 
-## GitHub repository
-
-The project is published to the private repository [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab). The local `origin` remote points to its HTTPS URL, and `main` tracks `origin/main`.
-
-After committing further changes, publish them with:
-
-```bash
-git push origin main
-```
-
-GitLab integration remains pending. If GitHub remains the source of truth, explicitly configure mirroring to GitLab so CI and Argo CD observe the same commits.
+Flannel alone does not enforce NetworkPolicy. Add a policy-capable network solution before claiming that isolation exercises work. A one-node cluster also cannot demonstrate failover onto another node.
