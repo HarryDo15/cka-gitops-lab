@@ -11,5 +11,5 @@ configMapGenerator:
       - WELCOME_MESSAGE=Welcome to your CKA Incident Desk
 images:
   - name: incident-desk
-    newName: docker.io/library/incident-desk
-    newTag: bootstrap
+    newName: "registry.gitlab.com/haithanh23.15/cka-gitops-lab"
+    digest: "sha256:aa93c22c55221d33eaf598cea063fd590a0463457e7a12c9eb82a6d296300eb0"
