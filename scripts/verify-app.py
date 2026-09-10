@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import subprocess
+import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,5 +37,16 @@ print(f"Created incident {incident['id']} through Service DNS; restarting the ap
 print(run("-n", "incident-desk", "rollout", "restart", "deployment/incident-desk"))
 print(run("-n", "incident-desk", "rollout", "status", "deployment/incident-desk", "--timeout=180s"))
 assert before.isdisjoint(pod_uid()), "Expected a replacement pod"
-assert incident in api(), "Record was lost after pod recreation"
+# Pod readiness can precede EndpointSlice/kube-proxy convergence.
+# Retry only reads: retrying a POST could create duplicate incidents.
+deadline = time.monotonic() + 30
+while True:
+    try:
+        records = api()
+        break
+    except subprocess.CalledProcessError:
+        if time.monotonic() >= deadline:
+            raise
+        time.sleep(2)
+assert incident in records, "Record was lost after pod recreation"
 print("PASS: Service DNS, API create/read, replacement pod, and persistent data.")

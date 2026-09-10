@@ -2,34 +2,35 @@
 
 A hands-on Kubernetes administration project for an Apple Silicon MacBook: one Linux VM bootstrapped with **kubeadm**, with **GitLab CI** for image builds and **Argo CD** for GitOps delivery.
 
-## Current status — 9 September 2026
+## Current status — 10 September 2026
 
-**The Kubernetes cluster was verified from the host and is now stopped for the next session.** Initial provisioning was repaired in the existing VM; see [the bootstrap incident](docs/incident-notes/0001-bootstrap.md). Application deployment and CI/GitOps integration remain pending.
+**The lab VM is stopped for the next session, with its disk and application data preserved.** Initial provisioning was repaired in the existing VM; see [the bootstrap incident](docs/incident-notes/0001-bootstrap.md). Incident Desk is deployed and Argo CD has completed its first manual sync from GitHub. GitLab CI remains pending.
 
 | Component | Status |
 | --- | --- |
 | Host inspection | Apple Silicon, macOS 26.6.2, 24 GiB RAM, 10 CPU cores |
 | Lima | Installed through Homebrew, version 2.2.0 |
-| Kubernetes VM | Stopped intentionally; disk preserved. Ubuntu 26.04 LTS, containerd 2.3.3 |
-| Kubernetes | v1.34.11 installed; node Ready, all eight system/network pods Running, API readiness passes |
-| Argo CD | Installation script prepared for v3.5.2; not installed |
-| Example application | Seven API tests pass; deployment pending |
-| Kubernetes application manifests | Deployment, Service, ConfigMap, PVC and local PV prepared; Kustomize rendering passes |
+| Kubernetes VM | Stopped intentionally on 10 September; Ubuntu 26.04 LTS, containerd 2.3.3 |
+| Kubernetes | Before shutdown: v1.34.11 installed; node Ready, all eight system/network pods Running, API readiness passes |
+| Argo CD | Before shutdown: v3.5.2 running; all seven pods Ready |
+| Example application | Seven API tests pass; deployed; Service DNS, API writes/reads and persistence across pod replacement verified |
+| Kubernetes application manifests | Deployment, Service, ConfigMap, PVC and local PV applied successfully |
 | GitLab CI | Test, ARM64 BuildKit build and promotion artifact jobs prepared; GitLab access and first run pending |
-| Argo CD application | Restricted AppProject and manual-sync Application prepared; connection pending |
+| Argo CD application | Read-only GitHub connection verified; manual sync Succeeded, application Synced / Healthy at 7ba7a3e |
 | Remote repository | Private GitHub repository: https://github.com/HarryDo15/cka-gitops-lab; GitLab not yet configured |
 
-The local Git repository is connected to the private GitHub repository [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab). GitHub holds the project documentation and source; the requested CI service remains GitLab. If both hosts are used, choose one authoritative repository and define a mirror process before enabling deployments.
+The local Git repository is connected to the private GitHub repository [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab). GitHub holds the project documentation and source; the requested CI service remains GitLab. GitHub is authoritative. The planned GitLab build/promotion flow is documented in [GITLAB.md](docs/GITLAB.md).
 
 ## Intended architecture
 
 ```mermaid
 flowchart LR
-    Developer[Local Git checkout] --> GitLab[GitLab repository]
+    Developer[Local Git checkout] --> GitHub[GitHub authoritative repository]
+    Developer -->|Push source for CI| GitLab[GitLab build repository]
     GitLab --> CI[GitLab CI runner]
     CI --> Registry[GitLab Container Registry]
     CI --> Update[Propose deployment image update]
-    Update --> GitLab
+    Update --> GitHub
     subgraph MacBook
         subgraph Lima Linux VM — 4 CPUs / 8 GiB RAM / 50 GiB disk
             Kubernetes[Single kubeadm control-plane and workload node]
@@ -39,7 +40,7 @@ flowchart LR
             Kubernetes --- App
         end
     end
-    GitLab -->|Argo CD pulls desired state| Argo
+    GitHub -->|Argo CD pulls desired state| Argo
     Registry -->|Node pulls ARM64 image| App
 ```
 
@@ -71,11 +72,13 @@ cd /Users/haido/Projects/cka-gitops-lab
 bash scripts/up.sh
 ```
 
-The VM was shut down cleanly on 9 September 2026 after verification. Run the command above to resume next time. The local `k` shell alias selects this project’s kubeconfig.
+The VM was shut down cleanly on 9 September and resumed successfully on 10 September 2026. It was stopped again after the application and Argo CD milestones. All eight system/network pods returned to Running. The local `k` shell alias selects this project’s kubeconfig.
 
-Host access through `127.0.0.1:16443` and `scripts/up.sh` were verified on 9 September 2026. Swap is disabled. A full VM stop/start recovery has not yet been tested.
+Host access through `127.0.0.1:16443` and `scripts/up.sh` were verified on 9 September 2026. Swap is disabled. Full VM stop/start recovery passed on 10 September 2026.
 
-The next deployment step is `bash scripts/bootstrap-app.sh`, followed by `python3 scripts/verify-app.py` to verify application behavior and persistence.
+Inspect the application with `k -n incident-desk get pods,svc,pvc`. To access its API, run `k -n incident-desk port-forward svc/incident-desk 8080:80`, then open `http://localhost:8080/healthz`.
+
+For the complete next-session checklist, see [the session handoff](docs/HANDOFF.md). Argo CD is connected and verified. After resuming, you can follow [the first troubleshooting exercise](docs/FIRST-EXERCISE.md). GitLab CI remains unconfigured.
 
 For project options and exercises, see [the practice plan](docs/PRACTICE.md).
 

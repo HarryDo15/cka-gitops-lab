@@ -30,7 +30,7 @@ A subsequent provisioning stage had also written an empty containerd sandbox ima
 
 ## Verification
 
-Verified on 9 September 2026: Kubernetes v1.34.11 reports `lima-cka-lab` Ready; all eight control-plane, CoreDNS, kube-proxy, and Flannel pods are Running with zero restarts. The host API `/readyz` returns `ok`, `scripts/up.sh` refreshes the isolated kubeconfig successfully, and swap is disabled. The VM runs Ubuntu 26.04 LTS and containerd 2.3.3. Full VM stop/start recovery remains untested.
+Verified on 9 September 2026: Kubernetes v1.34.11 reports `lima-cka-lab` Ready; all eight control-plane, CoreDNS, kube-proxy, and Flannel pods are Running with zero restarts. The host API `/readyz` returns `ok`, `scripts/up.sh` refreshes the isolated kubeconfig successfully, and swap is disabled. The VM runs Ubuntu 26.04 LTS and containerd 2.3.3. Full VM stop/start recovery subsequently passed on 10 September 2026: the node returned to Ready and all eight system/network pods returned to Running.
 
 ## Lesson
 
