@@ -32,7 +32,7 @@ flowchart LR
     CI --> Update[Propose deployment image update]
     Update --> GitHub
     subgraph MacBook
-        subgraph Lima Linux VM — 4 CPUs / 8 GiB RAM / 50 GiB disk
+        subgraph LimaVM["Lima Linux VM — 4 CPUs / 8 GiB RAM / 50 GiB disk"]
             Kubernetes[Single kubeadm control-plane and workload node]
             Argo[Argo CD]
             App[Incident Desk API and persistent volume]
