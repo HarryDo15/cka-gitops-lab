@@ -2,9 +2,9 @@
 
 ## Saved state
 
-The `cka-lab` Lima VM is stopped intentionally. Its disk retains Kubernetes, Argo CD, the locally built Incident Desk image, and the SQLite database. Do not delete or recreate the VM to resume.
+The `cka-lab` Lima VM is running after the latest verification session. Its disk retains Kubernetes, Argo CD, the promoted GitLab registry image and cached bootstrap image, and the SQLite database. Do not delete or recreate the VM to resume.
 
-Completed and verified before shutdown:
+Completed and verified:
 
 - VM restart recovery: node Ready and all eight system/network pods Running.
 - Incident Desk deployment and seven passing API tests.
@@ -13,7 +13,7 @@ Completed and verified before shutdown:
 - Argo CD v3.5.2: seven Ready pods, read-only GitHub deploy key, restricted AppProject, and manual sync.
 - First sync Succeeded with `Synced / Healthy` at revision `7ba7a3e7974706fd513c3577bf14622004b1db9e`; both test incidents remained readable.
 
-The session commit updates documentation and the verifier; deployment manifests are unchanged. Argo CD may show the newer GitHub revision after resuming. No automatic sync is enabled.
+GitHub promotion commit `761a0f3` selects the successful GitLab pipeline #2 image by digest and references the registry pull Secret. The running pod image ID was verified against that digest. No automatic sync is enabled. Later documentation-only commits do not change the deployment.
 
 ## Resume
 
@@ -52,8 +52,9 @@ Keep credentials, `.local/`, deploy keys, and database files out of Git.
 
 ## Next work
 
-1. Complete [the Service-selector troubleshooting exercise](FIRST-EXERCISE.md). It has not yet been performed.
+1. The [Service-selector troubleshooting exercise](FIRST-EXERCISE.md) passed and is recorded as resolved incident #3. See [the exercise evidence](incident-notes/0004-service-selector.md).
 2. Keep Argo CD sync manual; `bash scripts/sync-app.sh` requests a sync without pruning. Verify `Synced / Healthy` afterward.
-3. Configure GitLab CI and registry integration using [GITLAB.md](GITLAB.md). The pipeline is scaffolded but has never run.
+3. GitLab CI and registry promotion are complete. [Pipeline #2](https://gitlab.com/haithanh23.15/cka-gitops-lab/-/pipelines/2835617750) passed; source `f8161cd` produced image digest `sha256:aa93c22c55221d33eaf598cea063fd590a0463457e7a12c9eb82a6d296300eb0`, deployed by GitHub commit `761a0f3`. Follow [GITLAB.md](GITLAB.md) for subsequent source pushes and promotions.
+4. Continue the optional exercises in [PRACTICE.md](PRACTICE.md): readiness failures, backup/restore, RBAC, resource quotas, and node maintenance. These future exercises are not claimed as completed.
 
-Application persistence was tested across pod replacement. A full VM restart with the newly installed app and Argo CD is the next recovery check; only the base cluster restart was tested today.
+Full VM restart with Incident Desk and Argo CD passed: all 16 pods became Ready, and test incidents #1 and #2 remained readable through Service DNS. Initial DNS requests during startup failed transiently; wait for pods to become Ready before verifying Service access.

@@ -9,7 +9,7 @@
 | Internal documentation portal | Static frontend and small backend with Git-driven releases | Services, ingress or Gateway API controller, TLS, RBAC, rollout troubleshooting |
 | Backup and recovery service | Scheduled database backups, restore jobs, integrity reports | CronJobs, Secrets, volume mounts, retention, restore verification |
 
-Incident Desk is partially scaffolded in `app/`. The other ideas are proposed extensions, not implemented features.
+Incident Desk is deployed and verified, including storage persistence, Argo CD manual sync, and the Service-selector exercise. The other ideas are proposed extensions, not implemented features.
 
 ## Suggested progression
 

@@ -4,20 +4,20 @@ A hands-on Kubernetes administration project for an Apple Silicon MacBook: one L
 
 ## Current status — 10 September 2026
 
-**The lab VM is stopped for the next session, with its disk and application data preserved.** Initial provisioning was repaired in the existing VM; see [the bootstrap incident](docs/incident-notes/0001-bootstrap.md). Incident Desk is deployed and Argo CD has completed its first manual sync from GitHub. GitLab CI remains pending.
+**The lab is running; full application/Argo CD restart recovery and the first troubleshooting exercise are verified.** Initial provisioning was repaired in the existing VM; see [the bootstrap incident](docs/incident-notes/0001-bootstrap.md). Incident Desk is deployed and Argo CD has completed its first manual sync from GitHub. GitLab CI has passed and its digest-pinned image is deployed.
 
 | Component | Status |
 | --- | --- |
 | Host inspection | Apple Silicon, macOS 26.6.2, 24 GiB RAM, 10 CPU cores |
 | Lima | Installed through Homebrew, version 2.2.0 |
-| Kubernetes VM | Stopped intentionally on 10 September; Ubuntu 26.04 LTS, containerd 2.3.3 |
-| Kubernetes | Before shutdown: v1.34.11 installed; node Ready, all eight system/network pods Running, API readiness passes |
-| Argo CD | Before shutdown: v3.5.2 running; all seven pods Ready |
+| Kubernetes VM | Running after verified restart on 10 September; Ubuntu 26.04 LTS, containerd 2.3.3 |
+| Kubernetes | v1.34.11 installed; node Ready, all eight system/network pods Running, API readiness passes |
+| Argo CD | v3.5.2 running; all seven pods Ready |
 | Example application | Seven API tests pass; deployed; Service DNS, API writes/reads and persistence across pod replacement verified |
 | Kubernetes application manifests | Deployment, Service, ConfigMap, PVC and local PV applied successfully |
-| GitLab CI | Test, ARM64 BuildKit build and promotion artifact jobs prepared; GitLab access and first run pending |
-| Argo CD application | Read-only GitHub connection verified; manual sync Succeeded, application Synced / Healthy at 7ba7a3e |
-| Remote repository | Private GitHub repository: https://github.com/HarryDo15/cka-gitops-lab; GitLab not yet configured |
+| GitLab CI | Pipeline #2 passed: tests, ARM64 image build/push, promotion artifacts |
+| Argo CD application | Read-only GitHub connection verified; manual sync Succeeded, application Synced / Healthy at promotion commit 761a0f3 |
+| Remote repository | Private GitHub repository: https://github.com/HarryDo15/cka-gitops-lab; GitLab CI project: haithanh23.15/cka-gitops-lab; pipeline and registry verified |
 
 The local Git repository is connected to the private GitHub repository [HarryDo15/cka-gitops-lab](https://github.com/HarryDo15/cka-gitops-lab). GitHub holds the project documentation and source; the requested CI service remains GitLab. GitHub is authoritative. The planned GitLab build/promotion flow is documented in [GITLAB.md](docs/GITLAB.md).
 
@@ -72,13 +72,13 @@ cd /Users/haido/Projects/cka-gitops-lab
 bash scripts/up.sh
 ```
 
-The VM was shut down cleanly on 9 September and resumed successfully on 10 September 2026. It was stopped again after the application and Argo CD milestones. All eight system/network pods returned to Running. The local `k` shell alias selects this project’s kubeconfig.
+The VM was shut down cleanly on 9 September and resumed successfully on 10 September 2026. It was stopped again after the application and Argo CD milestones, then resumed with all 16 pods Ready and existing incidents intact. All eight system/network pods returned to Running. The local `k` shell alias selects this project’s kubeconfig.
 
 Host access through `127.0.0.1:16443` and `scripts/up.sh` were verified on 9 September 2026. Swap is disabled. Full VM stop/start recovery passed on 10 September 2026.
 
 Inspect the application with `k -n incident-desk get pods,svc,pvc`. To access its API, run `k -n incident-desk port-forward svc/incident-desk 8080:80`, then open `http://localhost:8080/healthz`.
 
-For the complete next-session checklist, see [the session handoff](docs/HANDOFF.md). Argo CD is connected and verified. After resuming, you can follow [the first troubleshooting exercise](docs/FIRST-EXERCISE.md). GitLab CI remains unconfigured.
+For the complete next-session checklist, see [the session handoff](docs/HANDOFF.md). Argo CD is connected and verified. The [first troubleshooting exercise](docs/FIRST-EXERCISE.md) is complete: Service traffic was broken by a selector mismatch and restored through manual Argo CD sync; resolved incident #3 records the result. GitLab pipeline #2 and digest promotion are verified; see [the delivery checkpoint](docs/incident-notes/0005-gitlab-promotion.md).
 
 For project options and exercises, see [the practice plan](docs/PRACTICE.md).
 

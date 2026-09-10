@@ -2,6 +2,26 @@
 
 GitHub `HarryDo15/cka-gitops-lab` is the source of truth. Argo CD can read this private repository using a dedicated read-only deploy key. GitLab hosts a second copy for CI and the image registry.
 
+## Current connection — 10 September 2026
+
+Private project: [haithanh23.15/cka-gitops-lab](https://gitlab.com/haithanh23.15/cka-gitops-lab), project ID `86290156`. Local remote `gitlab` uses HTTPS. GitHub remains authoritative.
+
+Source revision `f8161cd96be06d4f8459ccd2481de12dffb9a029` was pushed successfully. [Pipeline #1](https://gitlab.com/haithanh23.15/cka-gitops-lab/-/pipelines/2835609825) failed before creating any jobs. A direct pipeline request returned: `Identity verification is required in order to run CI jobs`.
+
+Account verification was completed. [Pipeline #2](https://gitlab.com/haithanh23.15/cka-gitops-lab/-/pipelines/2835617750) passed all three jobs against source revision `f8161cd`. The published ARM64 image digest is `sha256:aa93c22c55221d33eaf598cea063fd590a0463457e7a12c9eb82a6d296300eb0`.
+
+A project deploy token scoped only to `read_registry` is installed as Kubernetes Secret `incident-desk/gitlab-registry`. The Deployment references it through `imagePullSecrets`. The token value was not written to Git or local files. GitHub promotion commit `761a0f3` was manually synced through Argo CD; the running pod image ID matches the published digest, the application is `Synced / Healthy`, and incidents #1–#3 survived.
+
+The initial SSH push failed host-key verification. The successful HTTPS push used the existing `glab auth docker-helper` credential through an ignored local Git credential adapter; no token was stored in the remote URL or committed. On this Mac, repeat with:
+
+```bash
+git -c credential.helper= \
+  -c 'credential.helper=!python3 /Users/haido/Projects/cka-gitops-lab/.local/gitlab-credential-helper.py' \
+  push gitlab main
+```
+
+The adapter is local-only. On another checkout, configure GitLab HTTPS authentication locally or verified SSH access before pushing.
+
 ## First-time connection
 
 1. Create an empty private GitLab project called `cka-gitops-lab` under your account or group.
@@ -23,7 +43,7 @@ The image targets ARM64, matching the Mac's VM. Because the current Dockerfile o
 - `build`: rootless BuildKit pushes an image tagged with the commit SHA and exports its registry digest.
 - `promotion`: creates `promoted-image.txt` and a digest-pinned `deploy/kustomization.yaml` as downloadable artifacts. It does not automatically commit to either repository.
 
-Pipeline execution has not been verified until GitLab access is connected. For a self-managed runner, check its user namespace/AppArmor settings against [GitLab's BuildKit guidance](https://docs.gitlab.com/ci/docker/using_buildkit/).
+Pipeline #2 verified this configuration on GitLab-hosted runners. For a self-managed runner, check its user namespace/AppArmor settings against [GitLab's BuildKit guidance](https://docs.gitlab.com/ci/docker/using_buildkit/).
 
 ## Private registry access
 
