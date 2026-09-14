@@ -1,4 +1,4 @@
-# Session handoff — 10 September 2026
+# Session handoff — 14 September 2026
 
 ## Saved state
 
@@ -55,6 +55,10 @@ Keep credentials, `.local/`, deploy keys, and database files out of Git.
 1. The [Service-selector troubleshooting exercise](FIRST-EXERCISE.md) passed and is recorded as resolved incident #3. See [the exercise evidence](incident-notes/0004-service-selector.md).
 2. Keep Argo CD sync manual; `bash scripts/sync-app.sh` requests a sync without pruning. Verify `Synced / Healthy` afterward.
 3. GitLab CI and registry promotion are complete. [Pipeline #2](https://gitlab.com/haithanh23.15/cka-gitops-lab/-/pipelines/2835617750) passed; source `f8161cd` produced image digest `sha256:aa93c22c55221d33eaf598cea063fd590a0463457e7a12c9eb82a6d296300eb0`, deployed by GitHub commit `761a0f3`. Follow [GITLAB.md](GITLAB.md) for subsequent source pushes and promotions.
-4. Continue the optional exercises in [PRACTICE.md](PRACTICE.md): readiness failures, backup/restore, RBAC, resource quotas, and node maintenance. These future exercises are not claimed as completed.
+4. Continue the optional exercises in [PRACTICE.md](PRACTICE.md): readiness failures, RBAC, resource quotas, and node maintenance. The isolated SQLite backup/restore exercise is complete; these other exercises remain future work.
 
 Full VM restart with Incident Desk and Argo CD passed: all 16 pods became Ready, and test incidents #1 and #2 remained readable through Service DNS. Initial DNS requests during startup failed transiently; wait for pods to become Ready before verifying Service access.
+
+## Latest work — 14 September
+
+Resumed the VM; all 16 pods became Ready. Added `scripts/backup-app.py` and [backup instructions](BACKUP.md). The user ran the live command successfully from their terminal: all three incidents passed isolated restore, integrity, and HTTP read checks. The saved snapshot's hash, integrity, and count were independently verified. Backups remain ignored under `.local/backups/`; the live database was not overwritten. Next suggested exercise: namespace-scoped read-only RBAC.

@@ -100,3 +100,7 @@ Group related changes into substantial, verified milestones before committing an
 ## First troubleshooting exercise
 
 [Break and repair a Service selector](docs/FIRST-EXERCISE.md), then record its symptom, diagnosis, cause, fix, and verification in Incident Desk. Incidents are entered manually; this app is not a cluster monitoring agent.
+
+## Application backup
+
+Run `python3 scripts/backup-app.py` to save a consistent SQLite snapshot on the Mac and verify an isolated restore through the API. All three incidents passed on 14 September 2026. See [backup and restore instructions](docs/BACKUP.md). Backups remain outside Git.
