@@ -1,0 +1,123 @@
+# kube-prometheus-stack 89.2.0; single-node lab, local persistent storage.
+fullnameOverride: monitoring
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+# These kubeadm endpoints are loopback-bound or require separate etcd credentials.
+# Do not create misleading target-down alerts for endpoints we cannot scrape.
+defaultRules:
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+prometheusOperator:
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 300m, memory: 192Mi}
+prometheus:
+  prometheusSpec:
+    replicas: 1
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    retention: 2d
+    retentionSize: 2GB
+    walCompression: true
+    resources:
+      requests: {cpu: 150m, memory: 384Mi}
+      limits: {cpu: '1', memory: 1280Mi}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: cka-observability
+          accessModes: [ReadWriteOnce]
+          selector:
+            matchLabels: {observability-store: prometheus}
+          resources:
+            requests: {storage: 3Gi}
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    retention: 48h
+    resources:
+      requests: {cpu: 25m, memory: 64Mi}
+      limits: {cpu: 200m, memory: 128Mi}
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: cka-observability
+          accessModes: [ReadWriteOnce]
+          selector:
+            matchLabels: {observability-store: alertmanager}
+          resources:
+            requests: {storage: 1Gi}
+  # Alerts remain local. Configure a receiver separately when desired.
+  config:
+    global: {resolve_timeout: 5m}
+    route:
+      receiver: local
+      routes: []
+      group_by: [namespace, alertname]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+    receivers:
+      - name: local
+grafana:
+  deploymentStrategy:
+    type: Recreate
+    rollingUpdate: null
+  grafana.ini:
+    plugins:
+      preinstall_disabled: true
+  fullnameOverride: monitoring-grafana
+  defaultDashboardsTimezone: Asia/Singapore
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:
+    enabled: true
+    existingClaim: grafana-data
+  initChownData:
+    enabled: false
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 400m, memory: 384Mi}
+  sidecar:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {cpu: 100m, memory: 96Mi}
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      access: proxy
+      url: http://loki.monitoring.svc.cluster.local:3100
+      jsonData: {maxLines: 1000}
+kube-state-metrics:
+  resources:
+    requests: {cpu: 30m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+prometheus-node-exporter:
+  resources:
+    requests: {cpu: 30m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 96Mi}
+additionalPrometheusRulesMap:
+  incident-desk:
+    groups:
+      - name: incident-desk.availability
+        rules:
+          - alert: IncidentDeskUnavailable
+            expr: kube_deployment_status_replicas_available{namespace="incident-desk",deployment="incident-desk"} < 1
+            for: 2m
+            labels: {severity: warning}
+            annotations:
+              summary: Incident Desk has no available replica
+              description: Inspect Deployment events, readiness probes, image pulls and the PVC.

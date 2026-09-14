@@ -104,3 +104,7 @@ Group related changes into substantial, verified milestones before committing an
 ## Application backup
 
 Run `python3 scripts/backup-app.py` to save a consistent SQLite snapshot on the Mac and verify an isolated restore through the API. All three incidents passed on 14 September 2026. See [backup and restore instructions](docs/BACKUP.md). Backups remain outside Git.
+
+## Monitoring and logging
+
+Prometheus, Grafana, Alertmanager, Loki and Alloy are deployed under the `monitoring` namespace, with four persistent volumes and two-day telemetry retention. Live metrics and the Incident Desk → Alloy → Loki → Grafana log pipeline passed verification. See [access, configuration and practice checks](docs/OBSERVABILITY.md). Keep this work together as one observability milestone.

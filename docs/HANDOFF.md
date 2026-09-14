@@ -2,7 +2,7 @@
 
 ## Saved state
 
-The `cka-lab` Lima VM is running after the latest verification session. Its disk retains Kubernetes, Argo CD, the promoted GitLab registry image and cached bootstrap image, and the SQLite database. Do not delete or recreate the VM to resume.
+The `cka-lab` Lima VM was stopped at the user’s request after the latest verification session on 14 September 2026. Its disk retains Kubernetes, Argo CD, the promoted GitLab registry image and cached bootstrap image, and the SQLite database. Do not delete or recreate the VM to resume.
 
 Completed and verified:
 
@@ -62,3 +62,17 @@ Full VM restart with Incident Desk and Argo CD passed: all 16 pods became Ready,
 ## Latest work — 14 September
 
 Resumed the VM; all 16 pods became Ready. Added `scripts/backup-app.py` and [backup instructions](BACKUP.md). The user ran the live command successfully from their terminal: all three incidents passed isolated restore, integrity, and HTTP read checks. The saved snapshot's hash, integrity, and count were independently verified. Backups remain ignored under `.local/backups/`; the live database was not overwritten. Next suggested exercise: namespace-scoped read-only RBAC.
+
+## Monitoring work — 14 September (deployed)
+
+Resumed the existing VM and installed Helm 4.3.0. The `monitoring` Helm release is deployed at revision 4 using kube-prometheus-stack 89.2.0; Loki 3.7.7 and Alloy v1.19.2 are applied from `observability/`. All eight monitoring pods became Ready and all four dedicated local PVCs are Bound. Live node, API-server, exporter and workload metric queries passed, as did a unique Incident Desk HTTP log traced through Alloy and Loki into Grafana. Argo CD's Incident Desk application remains Synced / Healthy.
+
+Fixed two runtime findings: removed the chart's inherited Alertmanager child route referencing an undefined receiver, and disabled Grafana's background plugin installer after it tried to update bundled plugins on a read-only filesystem. Grafana now uses Recreate for its persistent SQLite storage. Slow initial image pulls recovered without data deletion; logging rollout deadlines are 20 minutes.
+
+See [OBSERVABILITY.md](OBSERVABILITY.md) for access, sizing and limitations. The stack is managed by Helm and checked-in manifests; it is not yet an Argo CD application. No external alert receiver is configured. The observability work is saved as one combined milestone, as requested.
+
+Controlled Prometheus and Loki pod replacement passed: the pre-restart metric sample and app log remained queryable. All eight observability pods were Ready afterward. A full VM restart and Alertmanager silence persistence are not part of this verification.
+
+## Shutdown checkpoint
+
+All 24 cluster pods were Ready before shutdown. `limactl stop cka-lab` completed and Lima reports `Stopped`. Kubernetes resources and persistent volumes remain on the VM disk. Resume with `bash scripts/up.sh`, then wait for workloads to become Ready and reopen any desired port-forwards.
